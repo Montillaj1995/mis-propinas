@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Semanal de Comisiones</title>
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Comisiones">
+  
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Control Semanal de Comisiones","short_name":"Comisiones","start_url":".","display":"standalone","background_color":"#f8fafc","theme_color":"#1e3a8a","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3135/3135706.png","sizes":"512x512","type":"image/png"}]}'>
+
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --accent: #10b981;
+      --accent-dark: #059669;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 12px; }
+    .container { max-width: 700px; margin: 0 auto; }
+    
+    header {
+      background: linear-gradient(135deg, var(--primary), #1e40af);
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    header h1 { font-size: 1.3rem; margin-bottom: 8px; text-align: center; }
+    
+    .rate-card {
+      background: rgba(255,255,255,0.2);
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .rate-card label { font-size: 0.9rem; font-weight: bold; }
+    .rate-input-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: white;
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: var(--text);
+    }
+    .rate-input-group input {
+      border: none;
+      outline: none;
+      width: 80px;
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .tabs-wrapper {
+      overflow-x: auto;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      width: max-content;
+    }
+    .tab-btn {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .tab-btn.summary-tab {
+      background: #ecfdf5;
+      color: var(--accent-dark);
+      border-color: #a7f3d0;
+    }
+    .tab-btn.summary-tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--primary); }
+    
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+    .form-group input { padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; }
+    
+    .preview { background: #eff6ff; border-radius: 8px; padding: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; font-size: 0.95rem; }
+    .preview-val { font-weight: bold; color: var(--primary); }
+    
+    .btn { padding: 12px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; text-align: center; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-danger { background: #fee2e2; color: var(--danger); margin-top: 12px; }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
+    th, td { padding: 8px 4px; border-bottom: 1px solid var(--border); text-align: left; }
+    
+    .total-box { background: linear-gradient(135deg, #10b981, #047857); color: white; padding: 16px; border-radius: 10px; margin-top: 12px; text-align: center; }
+    .total-box .title { font-size: 0.85rem; text-transform: uppercase; opacity: 0.9; }
+    .total-box .val { font-size: 2rem; font-weight: bold; }
+    
+    .sub-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; text-align: left; font-size: 0.85rem; background: rgba(255,255,255,0.15); padding: 8px; border-radius: 6px; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+    .summary-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+    .summary-card .day-title { font-weight: bold; color: var(--primary); font-size: 0.9rem; margin-bottom: 4px; }
+    .summary-card .day-rate { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .summary-card .day-val { font-weight: bold; color: var(--accent-dark); }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); }
+    .modal p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Control Semanal de Comisiones</h1>
+      <div class="rate-card" id="headerRateCard">
+        <label id="rateLabel">Tasa LUNES (BS/€):</label>
+        <div class="rate-input-group">
+          <span>Bs.</span>
+          <input type="number" id="euroRate" value="60.00" step="0.01" oninput="updateRate()">
+        </div>
+      </div>
+    </header>
+
+    <div class="tabs-wrapper">
+      <div class="tabs" id="dayTabs">
+        <button class="tab-btn active" onclick="switchTab('lunes')">Lunes</button>
+        <button class="tab-btn" onclick="switchTab('martes')">Martes</button>
+        <button class="tab-btn" onclick="switchTab('miercoles')">Miércoles</button>
+        <button class="tab-btn" onclick="switchTab('jueves')">Jueves</button>
+        <button class="tab-btn" onclick="switchTab('viernes')">Viernes</button>
+        <button class="tab-btn" onclick="switchTab('sabado')">Sábado</button>
+        <button class="tab-btn" onclick="switchTab('domingo')">Domingo</button>
+        <button class="tab-btn summary-tab" onclick="switchTab('resumen')">📊 RESUMEN SEMANAL</button>
+      </div>
+    </div>
+
+    <!-- VISTA DÍA INDIVIDUAL -->
+    <div id="dayView">
+      <div class="card">
+        <h2 id="dayTitle">Registro - LUNES</h2>
+        <div class="form-group">
+          <label>Mesa / Descripción</label>
+          <input type="text" id="tableName" placeholder="Ej: Mesa 1">
+        </div>
+        <div class="form-group">
+          <label>Servicio 10% (BS)</label>
+          <input type="number" id="servBS" placeholder="0.00" step="0.01" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>Propina Directa (BS)</label>
+          <input type="number" id="tipBS" placeholder="0.00" step="0.01" oninput="preview()">
+        </div>
+
+        <div class="preview">
+          <span>Tu 25% + Propina:</span>
+          <span class="preview-val" id="prevTotal">Bs. 0.00</span>
+        </div>
+
+        <button class="btn btn-primary" onclick="addTable()">Guardar Mesa</button>
+      </div>
+
+      <div class="card">
+        <h2>Mesas del Día</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Mesa</th>
+              <th>25% (BS)</th>
+              <th>Prop. (BS)</th>
+              <th>Total (BS)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="list"></tbody>
+        </table>
+
+        <div class="total-box">
+          <div class="title">Total a Cobrar en Euros (Día)</div>
+          <div class="val" id="totalDayEUR">€ 0.00</div>
+          
+          <div class="sub-totals">
+            <div>Tu 25%: <strong id="sumDay25">Bs. 0.00</strong></div>
+            <div>Propinas: <strong id="sumDayTip">Bs. 0.00</strong></div>
+            <div style="grid-column: span 2;">Total BS del día: <strong id="sumDayBS">Bs. 0.00</strong></div>
+          </div>
+        </div>
+
+        <button class="btn btn-danger" onclick="openConfirmModal('day')">Borrar Registros y Tasa de Este Día</button>
+      </div>
+    </div>
+
+    <!-- VISTA RESUMEN SEMANAL -->
+    <div id="summaryView" style="display: none;">
+      <div class="card">
+        <h2>Desglose por Días de la Semana</h2>
+        <div class="summary-grid" id="weeklyGrid"></div>
+
+        <div class="total-box" style="margin-top: 16px;">
+          <div class="title">GRAN TOTAL SEMANAL EN EUROS</div>
+          <div class="val" id="totalWeekEUR">€ 0.00</div>
+          
+          <div class="sub-totals">
+            <div>Total Tu 25%: <strong id="sumWeek25">Bs. 0.00</strong></div>
+            <div>Total Propinas: <strong id="sumWeekTip">Bs. 0.00</strong></div>
+            <div style="grid-column: span 2;">TOTAL GENERAL BS: <strong id="sumWeekBS">Bs. 0.00</strong></div>
+          </div>
+        </div>
+
+        <button class="btn btn-danger" onclick="openConfirmModal('week')">Reiniciar Toda la Semana y Tasas</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <h3 id="modalTitle">¿Estás seguro?</h3>
+      <p id="modalMsg">Esta acción borrará los registros guardados.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeConfirmModal()">NO</button>
+        <button class="btn btn-primary" style="background:var(--danger)" onclick="executeClear()">SÍ, BORRAR</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    let currentTab = 'lunes';
+    let weeklyData = JSON.parse(localStorage.getItem('com_weekly_data') || '{}');
+    let dailyRates = JSON.parse(localStorage.getItem('com_daily_rates') || '{}');
+    let clearType = 'day';
+
+    days.forEach(/** @param {string} d */ function(d) { 
+      if (!weeklyData[d]) weeklyData[d] = []; 
+      if (!dailyRates[d]) dailyRates[d] = 60.00;
+    });
+
+    window.onload = function() {
+      loadDayRate();
+      render();
+    };
+
+    function loadDayRate() {
+      const rateInput = document.getElementById('euroRate');
+      const rateLabel = document.getElementById('rateLabel');
+      
+      if (currentTab !== 'resumen') {
+        const rate = dailyRates[currentTab] || 60.00;
+        if (rateInput) rateInput.value = rate.toString();
+        if (rateLabel) rateLabel.innerText = `Tasa ${currentTab.toUpperCase()} (BS/€):`;
+      }
+    }
+
+    function updateRate() {
+      const rateInput = document.getElementById('euroRate');
+      const rate = parseFloat(rateInput ? rateInput.value : '1') || 1;
+      
+      if (currentTab !== 'resumen') {
+        dailyRates[currentTab] = rate;
+        localStorage.setItem('com_daily_rates', JSON.stringify(dailyRates));
+        calc();
+      }
+    }
+
+    /**
+     * @param {string} tab
+     */
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(/** @param {Element} btn */ function(btn) { btn.classList.remove('active'); });
+      
+      const activeIdx = tab === 'resumen' ? 7 : days.indexOf(tab);
+      if (buttons[activeIdx]) buttons[activeIdx].classList.add('active');
+
+      const dayView = document.getElementById('dayView');
+      const summaryView = document.getElementById('summaryView');
+      const dayTitle = document.getElementById('dayTitle');
+      const headerRateCard = document.getElementById('headerRateCard');
+
+      if (tab === 'resumen') {
+        if (dayView) dayView.style.display = 'none';
+        if (summaryView) summaryView.style.display = 'block';
+        if (headerRateCard) headerRateCard.style.display = 'none';
+        renderSummary();
+      } else {
+        if (dayView) dayView.style.display = 'block';
+        if (summaryView) summaryView.style.display = 'none';
+        if (headerRateCard) headerRateCard.style.display = 'flex';
+        if (dayTitle) dayTitle.innerText = `Registro - ${tab.toUpperCase()}`;
+        loadDayRate();
+        render();
+      }
+    }
+
+    function preview() {
+      const servInput = document.getElementById('servBS');
+      const tipInput = document.getElementById('tipBS');
+      const prevTotal = document.getElementById('prevTotal');
+
+      const s = parseFloat(servInput ? servInput.value : '0') || 0;
+      const t = parseFloat(tipInput ? tipInput.value : '0') || 0;
+      const total = (s * 0.25) + t;
+      
+      if (prevTotal) prevTotal.innerText = `Bs. ${total.toFixed(2)}`;
+    }
+
+    function addTable() {
+      const tableNameInput = document.getElementById('tableName');
+      const servInput = document.getElementById('servBS');
+      const tipInput = document.getElementById('tipBS');
+
+      const name = (tableNameInput && tableNameInput.value.trim()) ? tableNameInput.value.trim() : `Mesa ${(weeklyData[currentTab] || []).length + 1}`;
+      const serv = parseFloat(servInput ? servInput.value : '0') || 0;
+      const tip = parseFloat(tipInput ? tipInput.value : '0') || 0;
+
+      if (!serv && !tip) return alert('Ingresa un monto');
+
+      if (!weeklyData[currentTab]) weeklyData[currentTab] = [];
+
+      weeklyData[currentTab].push({
+        id: Date.now(),
+        name: name,
+        serv: serv,
+        my25: serv * 0.25,
+        tip: tip,
+        totalBS: (serv * 0.25) + tip
+      });
+
+      saveData();
+      if (tableNameInput) tableNameInput.value = '';
+      if (servInput) servInput.value = '';
+      if (tipInput) tipInput.value = '';
+      
+      preview();
+      render();
+    }
+
+    /**
+     * @param {number} id
+     */
+    function delItem(id) {
+      if (weeklyData[currentTab]) {
+        weeklyData[currentTab] = weeklyData[currentTab].filter(/** @param {any} x */ function(x) { return x.id !== id; });
+        saveData();
+        render();
+      }
+    }
+
+    /**
+     * @param {string} type
+     */
+    function openConfirmModal(type) {
+      clearType = type;
+      const modal = document.getElementById('confirmModal');
+      const title = document.getElementById('modalTitle');
+      const msg = document.getElementById('modalMsg');
+
+      if (type === 'day') {
+        if (title) title.innerText = `¿Borrar el día ${currentTab.toUpperCase()}?`;
+        if (msg) msg.innerText = 'Se eliminarán las mesas guardadas y la tasa de este día se reiniciará a 60.00 Bs.';
+      } else {
+        if (title) title.innerText = '¿Reiniciar TODA la semana?';
+        if (msg) msg.innerText = 'Se borrarán los registros y todas las tasas volverán a 60.00 Bs.';
+      }
+
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeConfirmModal() {
+      const modal = document.getElementById('confirmModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function executeClear() {
+      if (clearType === 'day') {
+        weeklyData[currentTab] = [];
+        dailyRates[currentTab] = 60.00;
+        saveData();
+        loadDayRate();
+        render();
+      } else {
+        days.forEach(/** @param {string} d */ function(d) {
+          weeklyData[d] = [];
+          dailyRates[d] = 60.00;
+        });
+        saveData();
+        renderSummary();
+      }
+      closeConfirmModal();
+    }
+
+    function saveData() {
+      localStorage.setItem('com_weekly_data', JSON.stringify(weeklyData));
+      localStorage.setItem('com_daily_rates', JSON.stringify(dailyRates));
+    }
+
+    function calc() {
+      const rate = dailyRates[currentTab] || 60.00;
+
+      let sum25 = 0, sumTip = 0, sumBS = 0;
+      (weeklyData[currentTab] || []).forEach(/** @param {any} d */ function(d) {
+        sum25 += d.my25;
+        sumTip += d.tip;
+        sumBS += d.totalBS;
+      });
+
+      const sumDay25 = document.getElementById('sumDay25');
+      const sumDayTip = document.getElementById('sumDayTip');
+      const sumDayBS = document.getElementById('sumDayBS');
+      const totalDayEUR = document.getElementById('totalDayEUR');
+
+      if (sumDay25) sumDay25.innerText = `Bs. ${sum25.toFixed(2)}`;
+      if (sumDayTip) sumDayTip.innerText = `Bs. ${sumTip.toFixed(2)}`;
+      if (sumDayBS) sumDayBS.innerText = `Bs. ${sumBS.toFixed(2)}`;
+      if (totalDayEUR) totalDayEUR.innerText = `€ ${(sumBS / rate).toFixed(2)}`;
+    }
+
+    function render() {
+      const list = document.getElementById('list');
+      if (!list) return;
+      list.innerHTML = '';
+      const dayList = weeklyData[currentTab] || [];
+
+      dayList.forEach(/** @param {any} d */ function(d) {
+        list.innerHTML += `
+          <tr>
+            <td><strong>${d.name}</strong></td>
+            <td>Bs. ${d.my25.toFixed(2)}</td>
+            <td>Bs. ${d.tip.toFixed(2)}</td>
+            <td><strong>Bs. ${d.totalBS.toFixed(2)}</strong></td>
+            <td><button onclick="delItem(${d.id})" style="background:none;border:none;color:red;font-weight:bold;">✕</button></td>
+          </tr>
+        `;
+      });
+      calc();
+    }
+
+    function renderSummary() {
+      const grid = document.getElementById('weeklyGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      let totalWeek25 = 0;
+      let totalWeekTip = 0;
+      let totalWeekBS = 0;
+      let totalWeekEUR = 0;
+
+      days.forEach(/** @param {string} d */ function(d) {
+        let dayBS = 0;
+        const rate = dailyRates[d] || 60.00;
+
+        (weeklyData[d] || []).forEach(/** @param {any} x */ function(x) {
+          totalWeek25 += x.my25;
+          totalWeekTip += x.tip;
+          dayBS += x.totalBS;
+        });
+        
+        const dayEUR = dayBS / rate;
+        totalWeekBS += dayBS;
+        totalWeekEUR += dayEUR;
+
+        grid.innerHTML += `
+          <div class="summary-card">
+            <div class="day-title">${d.toUpperCase()}</div>
+            <div class="day-rate">Tasa: Bs. ${rate.toFixed(2)}</div>
+            <div>Total BS: Bs. ${dayBS.toFixed(2)}</div>
+            <div class="day-val">€ ${dayEUR.toFixed(2)}</div>
+          </div>
+        `;
+      });
+
+      const sumWeek25 = document.getElementById('sumWeek25');
+      const sumWeekTip = document.getElementById('sumWeekTip');
+      const sumWeekBS = document.getElementById('sumWeekBS');
+      const totalWeekEURBox = document.getElementById('totalWeekEUR');
+
+      if (sumWeek25) sumWeek25.innerText = `Bs. ${totalWeek25.toFixed(2)}`;
+      if (sumWeekTip) sumWeekTip.innerText = `Bs. ${totalWeekTip.toFixed(2)}`;
+      if (sumWeekBS) sumWeekBS.innerText = `Bs. ${totalWeekBS.toFixed(2)}`;
+      if (totalWeekEURBox) totalWeekEURBox.innerText = `€ ${totalWeekEUR.toFixed(2)}`;
+    }
+
+    // Exportación explícita al objeto global window
+    window['switchTab'] = switchTab;
+    window['preview'] = preview;
+    window['addTable'] = addTable;
+    window['delItem'] = delItem;
+    window['openConfirmModal'] = openConfirmModal;
+    window['closeConfirmModal'] = closeConfirmModal;
+    window['executeClear'] = executeClear;
+    window['updateRate'] = updateRate;
+  </script>
+</body>
+</html>
